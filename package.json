@@ -1,0 +1,11 @@
+{
+  "name": "finance-cockpit",
+  "version": "2.0.0",
+  "description": "Jira project financial dashboard with CockroachDB integration",
+  "private": true,
+  "scripts": { "build": "forge build" },
+  "dependencies": {
+    "@forge/api": "^7.2.0",
+    "@forge/ui": "^1.11.4"
+  }
+}

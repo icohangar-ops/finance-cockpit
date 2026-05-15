@@ -1,0 +1,37 @@
+app:
+  id: ari:cloud:ecosystem::app/finance-cockpit
+  runtime:
+    name: nodejs24.x
+
+permissions:
+  scopes:
+    - read:jira-work
+    - read:project
+    - storage:app
+
+modules:
+  jira:projectPage:
+    - key: finance-cockpit-panel
+      resource: main
+      resolver:
+        function: resolver
+      title: Finance Cockpit
+      description: CFO-grade financial dashboard with budget tracking, burn rate, cash forecasts, and working capital optimization
+      icon: https://developer.atlassian.com/platform/forge/images/icons/finance-icon.svg
+
+  webtrigger:
+    - key: finance-cockpit-webtrigger
+      resource: webhook
+      function: webhook-handler
+
+resources:
+  - key: main
+    path: src/frontend/index.jsx
+  - key: webhook
+    path: src/webhook.js
+
+function:
+  - key: resolver
+    handler: index.handler
+  - key: webhook-handler
+    handler: webhook.handler
