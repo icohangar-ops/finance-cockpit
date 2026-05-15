@@ -1,4 +1,5 @@
-import { requestJira, fetch, storage } from '@forge/api';
+import { requestJira, fetch } from '@forge/api';
+import { getAll, set } from '@forge/kvs';
 
 const MOCK = {
   budget: { total: 2500000, spent: 1420000, remaining: 1080000, period: 'Q2 2026' },
@@ -44,10 +45,10 @@ async function getFromProxy() {
  * Retrieve cached data from Forge storage if it's still within TTL.
  */
 async function getFromStorage() {
-  const cached = await storage.get(STORAGE_KEY);
-  if (!cached) return null;
+  const cached = await getAll(STORAGE_KEY);
+  if (!cached || !cached.timestamp) return null;
 
-  const age = Date.now() - (cached.timestamp || 0);
+  const age = Date.now() - cached.timestamp;
   if (age > CACHE_TTL_MS) return null;
 
   return cached.data;
@@ -57,7 +58,7 @@ async function getFromStorage() {
  * Persist successful data to Forge storage for future fast access.
  */
 async function cacheToStorage(data) {
-  await storage.set(STORAGE_KEY, {
+  await set(STORAGE_KEY, {
     data,
     timestamp: Date.now(),
   });
