@@ -1,5 +1,6 @@
 import { set } from '@forge/kvs';
 import crypto from '@forge/crypto';
+import { requireWebhookSignature } from './lib/resilience/index.js';
 
 // HMAC webhook verification. Set WEBHOOK_SECRET in Forge app storage.
 // POST requests must include an X-Webhook-Signature header: hex(sha256(secret + body))
@@ -12,17 +13,16 @@ export async function handler(request) {
     const body = await request.json();
     const rawBody = JSON.stringify(body);
 
-    // HMAC signature verification
-    const signature = request.headers.get('x-webhook-signature');
-    const secret = process.env.WEBHOOK_SECRET || '';
-
-    if (secret && signature) {
-      const expected = await crypto.sha256().update(secret + rawBody).digest().then(h => h.toHex());
-      if (signature !== expected) {
-        return { status: 401, body: { error: 'Invalid webhook signature' } };
-      }
-    } else if (secret) {
-      return { status: 401, body: { error: 'Missing X-Webhook-Signature header' } };
+    // HMAC signature verification (fail-closed). A missing WEBHOOK_SECRET now
+    // yields 503 rather than silently disabling auth — see requireWebhookSignature.
+    const auth = await requireWebhookSignature({
+      secret: process.env.WEBHOOK_SECRET,
+      signature: request.headers.get('x-webhook-signature'),
+      computeExpected: (secret) =>
+        crypto.sha256().update(secret + rawBody).digest().then(h => h.toHex()),
+    });
+    if (!auth.ok) {
+      return { status: auth.status, body: { error: auth.reason } };
     }
 
     if (!body.budget || !body.burnRate || !body.cashForecast || !body.workingCapital) {

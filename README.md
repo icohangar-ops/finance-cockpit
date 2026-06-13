@@ -212,6 +212,36 @@ finance-cockpit/
 - **Module Type**: `jira:projectPage`
 - **Scopes**: `read:jira-work`, `storage:app`
 - **Permissions**: `external:fetch` to backend proxy URL
+- **Resilience**: outbound proxy calls go through `src/lib/resilience/safeFetch.js` (8s per-attempt timeout + jittered retry), vendored from `cubiczan-resilience`
+
+---
+
+## Configuration
+
+### Required: `WEBHOOK_SECRET` (Forge storage / environment variable)
+
+The webtrigger ingestion endpoint authenticates every POST with an HMAC
+signature. **`WEBHOOK_SECRET` is mandatory** — if it is not set, the webhook
+**fails closed** and returns `503 Server misconfigured` for all requests
+(it never silently accepts unauthenticated data).
+
+Set it with the Forge CLI before deploying:
+
+```bash
+forge variables set --encrypt WEBHOOK_SECRET <your-strong-random-secret>
+```
+
+Callers must send the signature in the `X-Webhook-Signature` header, computed as:
+
+```
+X-Webhook-Signature = hex( sha256( WEBHOOK_SECRET + rawRequestBody ) )
+```
+
+| Behavior | Condition |
+|----------|-----------|
+| `503` | `WEBHOOK_SECRET` unset (misconfigured — fail closed) |
+| `401` | Signature header missing or mismatched |
+| `200` | Valid signature, payload accepted |
 
 ---
 

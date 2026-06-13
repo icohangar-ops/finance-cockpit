@@ -1,5 +1,9 @@
 import { requestJira, fetch } from '@forge/api';
 import { getAll, set } from '@forge/kvs';
+import { safeFetch } from './lib/resilience/index.js';
+
+const PROXY_URL = 'https://db-proxy.example.com/api/finance-cockpit';
+const PROXY_TIMEOUT_MS = 8000; // bound proxy latency below the Forge function timeout
 
 const MOCK = {
   budget: { total: 2500000, spent: 1420000, remaining: 1080000, period: 'Q2 2026' },
@@ -25,9 +29,16 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * Fetch financial data from the CockroachDB REST proxy.
  */
 async function getFromProxy() {
-  const response = await fetch('https://db-proxy.example.com/api/finance-cockpit', {
+  // safeFetch bounds each attempt to PROXY_TIMEOUT_MS (AbortSignal) and retries
+  // transient failures with jittered backoff, so a slow proxy falls through to
+  // cache/mock within a predictable budget instead of exhausting the Forge
+  // function timeout. fetchImpl is Forge's permission-gated fetch.
+  const response = await safeFetch(PROXY_URL, {
     method: 'GET',
     headers: { 'Accept': 'application/json' },
+    fetchImpl: fetch,
+    timeoutMs: PROXY_TIMEOUT_MS,
+    allowlist: ['db-proxy.example.com'],
   });
 
   if (!response.ok) {

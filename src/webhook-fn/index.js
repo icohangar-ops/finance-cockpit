@@ -1,4 +1,6 @@
 import { set } from '@forge/kvs';
+import crypto from '@forge/crypto';
+import { requireWebhookSignature } from '../lib/resilience/index.js';
 
 export async function handler(request) {
   if (request.method !== 'POST') {
@@ -7,6 +9,20 @@ export async function handler(request) {
 
   try {
     const body = await request.json();
+    const rawBody = JSON.stringify(body);
+
+    // Fail-closed HMAC auth — this endpoint writes financial data, so a missing
+    // WEBHOOK_SECRET must refuse (503), never accept unauthenticated requests.
+    const auth = await requireWebhookSignature({
+      secret: process.env.WEBHOOK_SECRET,
+      signature: request.headers.get('x-webhook-signature'),
+      computeExpected: (secret) =>
+        crypto.sha256().update(secret + rawBody).digest().then(h => h.toHex()),
+    });
+    if (!auth.ok) {
+      return { status: auth.status, body: { error: auth.reason } };
+    }
+
     if (!body.budget || !body.burnRate || !body.cashForecast || !body.workingCapital) {
       return { status: 400, body: { error: 'Missing required fields: budget, burnRate, cashForecast, workingCapital' } };
     }
