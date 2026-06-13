@@ -1,6 +1,7 @@
-import { requestJira, fetch } from '@forge/api';
+import { fetch } from '@forge/api';
 import { getAll, set } from '@forge/kvs';
 import { safeFetch } from './lib/resilience/index.js';
+import { createResolver, readCache, writeCache, pick } from './forge-core/index.js';
 
 const PROXY_URL = 'https://db-proxy.example.com/api/finance-cockpit';
 const PROXY_TIMEOUT_MS = 8000; // bound proxy latency below the Forge function timeout
@@ -46,60 +47,32 @@ async function getFromProxy() {
   }
 
   const payload = await response.json();
-  return {
+  const data = {
     lastUpdated: new Date().toISOString(),
     ...payload,
   };
+
+  // Write fresh proxy results back to the cache (only proxy results were ever
+  // persisted in the original; cache hits and mock fallbacks are not re-stored).
+  await writeCache({ write: (rec) => set(STORAGE_KEY, rec), data });
+
+  return data;
 }
 
 /**
- * Retrieve cached data from Forge storage if it's still within TTL.
+ * Main resolver handler — tries proxy → storage(TTL) → mock, in that order.
+ * The tiered-fallback chain is provided by forge-core's createResolver/readCache;
+ * the proxy fetch, mock, and KVS accessors below are this app's domain-specific
+ * pieces.
  */
-async function getFromStorage() {
-  const cached = await getAll(STORAGE_KEY);
-  if (!cached || !cached.timestamp) return null;
-
-  const age = Date.now() - cached.timestamp;
-  if (age > CACHE_TTL_MS) return null;
-
-  return cached.data;
-}
-
-/**
- * Persist successful data to Forge storage for future fast access.
- */
-async function cacheToStorage(data) {
-  await set(STORAGE_KEY, {
-    data,
-    timestamp: Date.now(),
-  });
-}
-
-/**
- * Main resolver handler — tries proxy → storage → mock, in that order.
- */
-export async function handler(request) {
-  const projectKey = request.context?.projectKey || 'UNKNOWN';
-
-  // 1. Try CockroachDB REST proxy
-  try {
-    const proxyData = await getFromProxy();
-    await cacheToStorage(proxyData);
-    return { ...proxyData, projectKey, source: 'proxy' };
-  } catch (proxyErr) {
-    console.warn('CockroachDB proxy unavailable:', proxyErr.message);
-  }
-
-  // 2. Try Forge storage cache
-  try {
-    const cachedData = await getFromStorage();
-    if (cachedData) {
-      return { ...cachedData, projectKey, source: 'cache' };
-    }
-  } catch (storageErr) {
-    console.warn('Storage read failed:', storageErr.message);
-  }
-
-  // 3. Fallback to mock data
-  return { ...MOCK, projectKey, source: 'mock' };
-}
+export const handler = createResolver({
+  fromProxy: () => getFromProxy(),
+  fromCache: () =>
+    readCache({ read: () => getAll(STORAGE_KEY), ttlMs: CACHE_TTL_MS }),
+  mock: MOCK,
+  decorate: (data, { source, request }) => ({
+    ...data,
+    projectKey: pick(request, ['context', 'projectKey'], 'UNKNOWN'),
+    source,
+  }),
+});

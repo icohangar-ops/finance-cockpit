@@ -7,4 +7,5 @@ export { ResilienceError, isResilienceError } from './errors.js';
 export { retry, computeBackoff } from './retry.js';
 export { withTimeout } from './timeout.js';
 export { safeFetch } from './safeFetch.js';
-export { resolveWebhookSecret, requireWebhookSignature } from './auth.js';
+// Webhook auth (resolveWebhookSecret / requireWebhookSignature) now lives in
+// the vendored forge-core (src/forge-core/webhook.js); auth.js was removed.
