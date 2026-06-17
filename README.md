@@ -233,4 +233,4 @@ Private repository. All rights reserved.
 
 [![Demo Video](https://img.shields.io/badge/Watch_Demo-3min-blue)](docs/media/finance-cockpit-demo.mp4)
 
-📺 [Watch the demo](demos/$(basename "$video")) — slide-style walkthrough of key features and usage.
+[Watch the demo](docs/media/finance-cockpit-demo.mp4) — walkthrough of key features and usage.

@@ -1,1 +1,16 @@
 node_modules/
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Forge
+.forge/
+
+# Logs and OS files
+*.log
+.DS_Store
+coverage/
