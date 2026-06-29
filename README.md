@@ -1,5 +1,7 @@
 # Finance Cockpit
 
+> **Cubiczan stack** — [Profile](https://github.com/Cubiczan) · [meshcfo](https://github.com/Cubiczan/meshcfo) · **You are here:** `finance-cockpit`
+
 > CFO-grade financial dashboard for Jira — budget tracking, burn rate analysis, 13-week cash forecasting, and working capital optimization. Powered by CockroachDB.
 
 ![Finance Cockpit Screenshot](docs/finance-cockpit-screenshot.png)
@@ -224,6 +226,15 @@ finance-cockpit/
 | [db-proxy](https://github.com/icohangar-ops/db-proxy) | CockroachDB REST proxy serving all Forge apps |
 
 ---
+
+---
+
+## Cubiczan stack
+
+| Finance | [Strata](https://github.com/Cubiczan/Strata) · [Metabocommand](https://github.com/Cubiczan/Metabocommand) · [meshcfo](https://github.com/Cubiczan/meshcfo) · [working-capital-optimizer](https://github.com/Cubiczan/working-capital-optimizer) · [cash-flow-optimizer](https://github.com/Cubiczan/cash-flow-optimizer) · [finance-cockpit](https://github.com/Cubiczan/finance-cockpit) |
+| Governance | [consensus-hardening-protocol](https://github.com/Cubiczan/consensus-hardening-protocol) · [agent-conductor](https://github.com/Cubiczan/agent-conductor) · [compliance-as-code-agent](https://github.com/Cubiczan/compliance-as-code-agent) · [cleanmandate](https://github.com/Cubiczan/cleanmandate) |
+
+Engineering teams see **budget and burn** in Jira; finance teams use [meshcfo](https://github.com/Cubiczan/meshcfo) and [Strata](https://github.com/Cubiczan/Strata) for board-ready outputs.
 
 ## License
 
